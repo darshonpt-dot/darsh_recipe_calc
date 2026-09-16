@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Recipe Ratio Scaler</title>
+<style>
+  :root{
+    --paper:#FAF7EF;
+    --paper-line:#E4DCC8;
+    --ink:#2A2620;
+    --ink-soft:#6B6455;
+    --teal:#2B5252;
+    --teal-dim:#3E6B6B;
+    --mustard:#C98A2C;
+    --mustard-soft:#F1DDB2;
+    --danger:#A64B3C;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    padding:48px 20px 80px;
+    background:var(--paper);
+    background-image:
+      linear-gradient(var(--paper-line) 1px, transparent 1px);
+    background-size: 100% 42px;
+    color:var(--ink);
+    font-family: 'Iowan Old Style','Palatino Linotype',Georgia,serif;
+    display:flex;
+    justify-content:center;
+  }
+  .sheet{
+    width:100%;
+    max-width:760px;
+  }
+  header{
+    margin-bottom:28px;
+    border-bottom:2px solid var(--ink);
+    padding-bottom:16px;
+  }
+  h1{
+    font-size:2rem;
+    margin:0 0 6px;
+    font-weight:700;
+    letter-spacing:-0.01em;
+  }
+  header p{
+    margin:0;
+    color:var(--ink-soft);
+    font-size:0.98rem;
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    max-width:56ch;
+    line-height:1.5;
+  }
+  .card{
+    background:#fff;
+    border:1px solid var(--paper-line);
+    border-radius:4px;
+    padding:24px;
+    box-shadow: 0 1px 0 rgba(42,38,32,0.04);
+    margin-bottom:24px;
+  }
+  table{
+    width:100%;
+    border-collapse:collapse;
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  }
+  thead th{
+    text-align:left;
+    font-size:0.78rem;
+    font-weight:600;
+    color:var(--ink-soft);
+    padding:0 8px 10px;
+    border-bottom:1px solid var(--paper-line);
+  }
+  thead th.num, tbody td.num{ text-align:right; }
+  tbody td{
+    padding:8px;
+    border-bottom:1px solid var(--paper-line);
+    vertical-align:middle;
+  }
+  tbody tr:last-child td{ border-bottom:none; }
+  input[type=text], input[type=number]{
+    width:100%;
+    border:1px solid transparent;
+    background:transparent;
+    padding:8px 9px;
+    font-size:0.95rem;
+    border-radius:3px;
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    color:var(--ink);
+  }
+  input[type=text]:hover, input[type=number]:hover{
+    background:#FBF9F3;
+    border-color:var(--paper-line);
+  }
+  input[type=text]:focus, input[type=number]:focus{
+    outline:none;
+    background:#fff;
+    border-color:var(--teal);
+    box-shadow:0 0 0 3px rgba(43,82,82,0.1);
+  }
+  input[type=number]{
+    text-align:right;
+    font-variant-numeric: tabular-nums;
+  }
+  .qty-col input{ font-weight:600; }
+  select.unit{
+    width:100%;
+    border:1px solid transparent;
+    background:transparent;
+    padding:8px 6px;
+    font-size:0.9rem;
+    border-radius:3px;
+    color:var(--ink-soft);
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  }
+  select.unit:hover{ background:#FBF9F3; border-color:var(--paper-line); }
+  .ratio-badge{
+    display:inline-block;
+    min-width:44px;
+    text-align:right;
+    font-variant-numeric: tabular-nums;
+    color:var(--teal-dim);
+    font-size:0.9rem;
+  }
+  .remove-btn{
+    background:none;
+    border:none;
+    color:var(--ink-soft);
+    font-size:1.1rem;
+    cursor:pointer;
+    width:28px;
+    height:28px;
+    border-radius:50%;
+    line-height:1;
+  }
+  .remove-btn:hover{ background:#F4E3DE; color:var(--danger); }
+  .row-actions{ text-align:center; width:36px; }
+  .toolbar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-top:16px;
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  }
+  .add-btn{
+    background:none;
+    border:1px dashed var(--ink-soft);
+    color:var(--ink-soft);
+    padding:9px 16px;
+    border-radius:4px;
+    cursor:pointer;
+    font-size:0.9rem;
+  }
+  .add-btn:hover{ border-color:var(--teal); color:var(--teal); background:#F2F6F5; }
+  .reset-link{
+    background:none;
+    border:none;
+    color:var(--ink-soft);
+    font-size:0.85rem;
+    cursor:pointer;
+    text-decoration:underline;
+    text-underline-offset:2px;
+  }
+  .reset-link:hover{ color:var(--danger); }
+  .export-btn{
+    background:var(--teal);
+    border:1px solid var(--teal);
+    color:#fff;
+    padding:9px 16px;
+    border-radius:4px;
+    cursor:pointer;
+    font-size:0.9rem;
+  }
+  .export-btn:hover{ background:var(--teal-dim); border-color:var(--teal-dim); }
+  .hint{
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    font-size:0.85rem;
+    color:var(--ink-soft);
+    line-height:1.6;
+    background:var(--mustard-soft);
+    border-left:3px solid var(--mustard);
+    padding:12px 16px;
+    border-radius:0 4px 4px 0;
+    margin-top:0;
+  }
+  .col-name{ width:34%; }
+  .col-ratio{ width:14%; }
+  .col-orig{ width:20%; }
+  .col-unit{ width:14%; }
+  .col-scaled{ width:20%; }
+  @media (max-width:600px){
+    body{ padding:28px 12px 60px; }
+    h1{ font-size:1.6rem; }
+    .card{ padding:14px; }
+    thead th, tbody td{ padding:6px 4px; }
+    .col-ratio{ display:none; }
+  }
+</style>
+</head>
+<body>
+<div class="sheet">
+  <header>
+    <h1>Recipe Ratio Scaler</h1>
+    <p>Enter your recipe's original quantities. Ratios are worked out for you. Change any one quantity and the rest scale to match, exactly the way the original recipe was balanced.</p>
+  </header>
+
+  <div class="card">
+    <table>
+      <thead>
+        <tr>
+          <th class="col-name">Ingredient</th>
+          <th class="col-ratio num">Ratio</th>
+          <th class="col-orig num">Original</th>
+          <th class="col-unit">Unit</th>
+          <th class="col-scaled num">Scaled to</th>
+          <th class="row-actions"></th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+
+    <div class="toolbar">
+      <button class="add-btn" id="addRow">+ Add ingredient</button>
+      <div style="display:flex; align-items:center; gap:18px;">
+        <button class="export-btn" id="exportCsv">⭳ Export to Excel</button>
+        <button class="reset-link" id="resetAll">Reset to example</button>
+      </div>
+    </div>
+  </div>
+
+  <p class="hint">Tip: type a new number into any "Scaled to" box — every other ingredient recalculates instantly, keeping the same ratio as your original recipe. Units are just labels (g, ml, pcs...); they don't convert between each other.</p>
+</div>
+
+<script>
+const STORAGE_KEY = 'recipe-scaler-v1';
+
+const EXAMPLE = [
+  { name: 'Flour',  original: 500, unit: 'g',  scaled: 500 },
+  { name: 'Butter', original: 250, unit: 'g',  scaled: 250 },
+  { name: 'Sugar',  original: 200, unit: 'g',  scaled: 200 },
+  { name: 'Eggs',   original: 100, unit: 'g',  scaled: 100 },
+  { name: 'Milk',   original: 150, unit: 'ml', scaled: 150 },
+];
+
+let rows = loadState() || EXAMPLE.map(r => ({...r}));
+
+const rowsEl = document.getElementById('rows');
+const unitOptions = ['g','kg','ml','l','cup','tbsp','tsp','pcs','oz','lb'];
+
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return null;
+    const parsed = JSON.parse(raw);
+    if(Array.isArray(parsed) && parsed.length) return parsed;
+    return null;
+  }catch(e){ return null; }
+}
+
+function saveState(){
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(rows)); }
+  catch(e){ /* storage unavailable, fail silently */ }
+}
+
+function computeRatioLabel(row){
+  const base = rows.reduce((min, r) => {
+    const v = Number(r.original);
+    if(!v || v <= 0) return min;
+    return (min === null || v < min) ? v : min;
+  }, null);
+  const v = Number(row.original);
+  if(!base || !v || v <= 0) return '—';
+  return (v / base).toFixed(2).replace(/\.00$/, '').replace(/(\.\d)0$/, '$1');
+}
+
+// Keeps live references to each row's DOM nodes, so typing can update
+// values in place instead of rebuilding the table (which was stealing
+// keyboard focus after a couple of keystrokes).
+let rowRefs = [];
+
+function render(){
+  rowsEl.innerHTML = '';
+  rowRefs = [];
+  rows.forEach((row, idx) => {
+    const tr = document.createElement('tr');
+
+    const nameTd = document.createElement('td');
+    const nameInput = document.createElement('input');
+    nameInput.type = 'text';
+    nameInput.placeholder = 'Ingredient name';
+    nameInput.value = row.name;
+    nameInput.addEventListener('input', e => {
+      rows[idx].name = e.target.value;
+      saveState();
+    });
+    nameTd.appendChild(nameInput);
+
+    const ratioTd = document.createElement('td');
+    ratioTd.className = 'num';
+    const ratioSpan = document.createElement('span');
+    ratioSpan.className = 'ratio-badge';
+    ratioSpan.textContent = computeRatioLabel(row) + '×';
+    ratioTd.appendChild(ratioSpan);
+
+    const origTd = document.createElement('td');
+    origTd.className = 'num qty-col';
+    const origInput = document.createElement('input');
+    origInput.type = 'number';
+    origInput.min = '0';
+    origInput.step = 'any';
+    origInput.value = row.original;
+    origInput.addEventListener('input', e => {
+      const newOriginal = parseFloat(e.target.value);
+      if(isNaN(newOriginal) || newOriginal < 0) return;
+      rows[idx].original = newOriginal;
+      rows[idx].scaled = newOriginal;
+      saveState();
+      updateRatiosInPlace();
+      updateScaledDisplays(idx);
+    });
+    origTd.appendChild(origInput);
+
+    const unitTd = document.createElement('td');
+    const unitSelect = document.createElement('select');
+    unitSelect.className = 'unit';
+    unitOptions.forEach(u => {
+      const opt = document.createElement('option');
+      opt.value = u; opt.textContent = u;
+      if(row.unit === u) opt.selected = true;
+      unitSelect.appendChild(opt);
+    });
+    if(!unitOptions.includes(row.unit)){
+      const opt = document.createElement('option');
+      opt.value = row.unit; opt.textContent = row.unit; opt.selected = true;
+      unitSelect.appendChild(opt);
+    }
+    unitSelect.addEventListener('change', e => {
+      rows[idx].unit = e.target.value;
+      saveState();
+    });
+    unitTd.appendChild(unitSelect);
+
+    const scaledTd = document.createElement('td');
+    scaledTd.className = 'num qty-col';
+    const scaledInput = document.createElement('input');
+    scaledInput.type = 'number';
+    scaledInput.min = '0';
+    scaledInput.step = 'any';
+    scaledInput.value = round(row.scaled);
+    scaledInput.addEventListener('input', e => {
+      const newVal = parseFloat(e.target.value);
+      if(isNaN(newVal) || newVal < 0) return;
+      rescale(idx, newVal);
+    });
+    scaledTd.appendChild(scaledInput);
+
+    const actionTd = document.createElement('td');
+    actionTd.className = 'row-actions';
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'remove-btn';
+    removeBtn.title = 'Remove ingredient';
+    removeBtn.textContent = '×';
+    removeBtn.addEventListener('click', () => {
+      rows.splice(idx, 1);
+      saveState();
+      render();
+    });
+    actionTd.appendChild(removeBtn);
+
+    tr.appendChild(nameTd);
+    tr.appendChild(ratioTd);
+    tr.appendChild(origTd);
+    tr.appendChild(unitTd);
+    tr.appendChild(scaledTd);
+    tr.appendChild(actionTd);
+    rowsEl.appendChild(tr);
+
+    rowRefs[idx] = { ratioSpan, origInput, scaledInput };
+  });
+}
+
+// Updates every ratio badge's text without touching any <input>,
+// so the field the user is actively typing in never loses focus.
+function updateRatiosInPlace(){
+  rows.forEach((row, i) => {
+    if(rowRefs[i]) rowRefs[i].ratioSpan.textContent = computeRatioLabel(row) + '×';
+  });
+}
+
+// Updates every "Scaled to" input's displayed value except the one
+// currently being typed into (skipIdx), again without rebuilding the DOM.
+function updateScaledDisplays(skipIdx){
+  rows.forEach((row, i) => {
+    if(i === skipIdx) return;
+    if(rowRefs[i]) rowRefs[i].scaledInput.value = round(row.scaled);
+  });
+}
+
+function rescale(changedIdx, newValue){
+  const changedRow = rows[changedIdx];
+  changedRow.scaled = newValue;
+  const originalOfChanged = Number(changedRow.original);
+  if(!originalOfChanged || originalOfChanged <= 0){
+    saveState();
+    return;
+  }
+  const factor = newValue / originalOfChanged;
+  rows.forEach(r => {
+    r.scaled = Number(r.original) * factor;
+  });
+  saveState();
+  updateScaledDisplays(changedIdx);
+}
+
+function round(n){
+  const num = Number(n);
+  if(isNaN(num)) return 0;
+  return Math.round(num * 100) / 100;
+}
+
+document.getElementById('addRow').addEventListener('click', () => {
+  rows.push({ name: '', original: 0, unit: 'g', scaled: 0 });
+  saveState();
+  render();
+});
+
+document.getElementById('exportCsv').addEventListener('click', () => {
+  const header = ['Ingredient','Ratio','Original','Unit','Scaled to'];
+  const csvEscape = v => {
+    const s = String(v ?? '');
+    return /[",\n]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s;
+  };
+  const lines = [header.map(csvEscape).join(',')];
+  rows.forEach(row => {
+    lines.push([
+      row.name,
+      computeRatioLabel(row) + '×',
+      round(row.original),
+      row.unit,
+      round(row.scaled)
+    ].map(csvEscape).join(','));
+  });
+  // Leading BOM helps Excel detect UTF-8 encoding correctly.
+  const csvContent = '\uFEFF' + lines.join('\r\n');
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const stamp = new Date().toISOString().slice(0,10);
+  a.href = url;
+  a.download = `recipe-scaled-${stamp}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+});
+
+document.getElementById('resetAll').addEventListener('click', () => {
+  rows = EXAMPLE.map(r => ({...r}));
+  saveState();
+  render();
+});
+
+render();
+</script>
+</body>
+</html>
