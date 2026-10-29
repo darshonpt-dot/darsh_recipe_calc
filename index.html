@@ -65,6 +65,18 @@
     max-width:60ch;
   }
 
+  .title-input{
+    font-family:var(--font-heading);
+    font-size:1.35rem;
+    font-weight:700;
+    padding:14px;
+    background:#fff;
+    border:1px solid var(--paper-line);
+    border-radius:8px;
+    margin-bottom:16px;
+  }
+  .title-input::placeholder{ color:var(--ink-soft); font-weight:500; }
+
   .card{
     background:#fff;
     border:1px solid var(--paper-line);
@@ -260,6 +272,8 @@
     <p>Enter your recipe's original quantities. Ratios are worked out for you. Change any one quantity and the rest scale to match, exactly the way the original recipe was balanced.</p>
   </header>
 
+  <input id="recipeTitle" class="title-input" type="text" placeholder="Recipe title (e.g. Vanilla Sponge Cake)" aria-label="Recipe title">
+
   <div class="card">
     <div class="head-row">
       <div>Ingredient</div>
@@ -285,12 +299,13 @@
 
 <script>
 const STORAGE_KEY = 'recipe-scaler-v1';
+const TITLE_KEY = 'recipe-scaler-title-v1';
+const EXAMPLE_TITLE = 'Vanilla Sponge Cake';
 
 const EXAMPLE = [
   { name: 'Flour',  original: 500, unit: 'g',  scaled: 500 },
   { name: 'Butter', original: 250, unit: 'g',  scaled: 250 },
   { name: 'Sugar',  original: 200, unit: 'g',  scaled: 200 },
-  { name: 'Eggs',   original: 100, unit: 'g',  scaled: 100 },
   { name: 'Milk',   original: 150, unit: 'ml', scaled: 150 },
 ];
 
@@ -298,6 +313,11 @@ let rows = loadState() || EXAMPLE.map(r => ({...r}));
 const rowsEl = document.getElementById('rows');
 const unitOptions = ['g','kg','ml','l','cup','tbsp','tsp','pcs','oz','lb'];
 let rowRefs = [];
+let recipeTitle = (function(){
+  try{ const t = localStorage.getItem(TITLE_KEY); return t === null ? EXAMPLE_TITLE : t; }
+  catch(e){ return EXAMPLE_TITLE; }
+})();
+function saveTitle(){ try{ localStorage.setItem(TITLE_KEY, recipeTitle); }catch(e){} }
 
 function loadState(){
   try{
@@ -462,7 +482,7 @@ document.getElementById('exportCsv').addEventListener('click', () => {
     const s = String(v ?? '');
     return /[",\n]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s;
   };
-  const lines = [header.map(esc).join(',')];
+  const lines = [['Recipe', recipeTitle].map(esc).join(','), '', header.map(esc).join(',')];
   rows.forEach(row => {
     lines.push([row.name, computeRatioLabel(row), round(row.original), row.unit, round(row.scaled)].map(esc).join(','));
   });
@@ -470,7 +490,8 @@ document.getElementById('exportCsv').addEventListener('click', () => {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'recipe-scaled-' + new Date().toISOString().slice(0,10) + '.csv';
+  const slug = (recipeTitle || 'recipe').trim().replace(/[^\w\-]+/g,'-').replace(/^-+|-+$/g,'') || 'recipe';
+  a.download = slug + '-scaled.csv';
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -479,9 +500,16 @@ document.getElementById('exportCsv').addEventListener('click', () => {
 
 document.getElementById('resetAll').addEventListener('click', () => {
   rows = EXAMPLE.map(r => ({...r}));
+  recipeTitle = EXAMPLE_TITLE;
+  titleEl.value = recipeTitle;
+  saveTitle();
   saveState();
   render();
 });
+
+const titleEl = document.getElementById('recipeTitle');
+titleEl.value = recipeTitle;
+titleEl.addEventListener('input', () => { recipeTitle = titleEl.value; saveTitle(); });
 
 render();
 </script>
